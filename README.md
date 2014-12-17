@@ -3,6 +3,12 @@
 The minimal tmux launcher, with the fewest options to set and the fastest
 ramp-up time.
 
+Originally created to be tool to make it easier to reproduce (and interactively
+debug) distributed systems bugs that required sshing into a lot of servers and
+starting processes, smux is a general purpose tmux launcher whose input
+resembles in all respects a concatenation of bash scripts to be run on each
+terminal.
+
 ## Dependencies
 
  - Python2
@@ -25,6 +31,11 @@ ramp-up time.
          command3
 
       Note that a pane does not necessary need to run any commands.
+
+      Note further that it is not uncommon for the first command in a pane to
+      be `ssh ...` and then the subsequent commands the ones to be run on the
+      rmeote server.
+
    3. smux.py <input_file_name>
 
 ## Usage (as a library)
