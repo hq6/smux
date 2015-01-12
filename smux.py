@@ -177,8 +177,12 @@ def usage():
    sys.exit(1)
 
 def main():
-    if len(sys.argv) < 2: usage()
-    with open(sys.argv[1]) as f:
-      startSession(f)
+    if len(sys.argv) < 2 or sys.argv[1] in ['--help', '-h','-?'] : usage()
+    try:
+      with open(sys.argv[1]) as f:
+        startSession(f)
+    except:
+      print >>sys.stderr, 'File "%s" does not exist.' % sys.argv[1]
+      sys.exit(2)
         
 if __name__ == "__main__": main()
