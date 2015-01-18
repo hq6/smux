@@ -62,7 +62,10 @@ def sendCommand(cmd, pane = 0, ex = True):
 
 # Commands is a list of lists, where each list is a sequence of
 # commands to give to particular window.
-def create(numPanesPerWindow, commands, layout = 'tiled'):
+# executeBeforeAttach is a function that a client can pass in to be executed
+# before the attach (assuming we are not inside a tmux already), because
+# nothing can be run after the attach.
+def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = None):
    # Defend against forkbombs
    if not numPanesPerWindow  > 0: 
        print "Forkbomb attempt detected!"
@@ -97,6 +100,7 @@ def create(numPanesPerWindow, commands, layout = 'tiled'):
       if panesNeeded > 0:
         newWindow()
 
+   if executeBeforeAttach: executeBeforeAttach()
    if not tmux:
       tcmd("attach-session")
    
