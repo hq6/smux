@@ -24,12 +24,19 @@
 import os
 import sys
 import time
+from subprocess import Popen, PIPE
 
 totalWindows = 0
 MAX_WINDOWS=500
 
 def tcmd(cmd):
    os.system("tmux %s" % cmd)
+
+def tget(cmd):
+   proc = Popen("tmux %s" % cmd, stdout=PIPE, stderr=PIPE, shell=True)
+   out, err = proc.communicate()
+   exitcode = proc.returncode
+   return out
 
 def splitWindow():
    global totalWindows
@@ -45,19 +52,23 @@ def newWindow():
        tcmd("new-window")
        totalWindows += 1
    
+def getCurrentWindow():
+   return int(tget("display-message -p '#I'"))
    
 def carvePanes(numPerWindow, layout):
    for i in xrange(numPerWindow - 1):
        splitWindow()
    tcmd("select-layout %s" % layout)
+   return getCurrentWindow()
     
       
-def sendCommand(cmd, pane = 0, ex = True):
+def sendCommand(cmd, pane = 0, window = None, ex = True):
    time.sleep(0.1) 
+   if not window: window = getCurrentWindow()
    if ex:
-       tcmd("send-keys -t %d '%s ' Enter" % (pane,cmd))
+       tcmd("send-keys -t %d.%d '%s ' Enter" % (window, pane,cmd))
    else:
-       tcmd("send-keys -t %d '%s'" % (pane,cmd))
+       tcmd("send-keys -t %d.%d '%s'" % (window, pane,cmd))
    
 
 # Commands is a list of lists, where each list is a sequence of
@@ -83,14 +94,14 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = 
    panesNeeded = len(commands)
    index = 0
    while panesNeeded > 0:
-      carvePanes(numPanesPerWindow, layout)
+      windowNum = carvePanes(numPanesPerWindow, layout)
       panesNeeded -= numPanesPerWindow
       
       # Send the commands in with CR
       for i in xrange(min(numPanesPerWindow, len(commands))): 
          print i 
          for x in commands[i]:
-            sendCommand(x,i)
+            sendCommand(x,i, windowNum)
 
       # Pop off the commands we just finished with
       for i in xrange(min(numPanesPerWindow, len(commands))): 
