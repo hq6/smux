@@ -58,6 +58,7 @@ def getCurrentWindow():
 def carvePanes(numPerWindow, layout):
    for i in xrange(numPerWindow - 1):
        splitWindow()
+       tcmd("select-layout %s" % layout)
    tcmd("select-layout %s" % layout)
    return getCurrentWindow()
     
