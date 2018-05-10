@@ -66,7 +66,7 @@ smux has a single API call ``create``::
 
 setup(
   name="smux",
-  version='0.5',
+  version='0.6',
   scripts=['smux.py'],
   author="Henry Qin",
   author_email="root@hq6.me",
