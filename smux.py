@@ -153,7 +153,7 @@ def startSession(file):
 
 def usage():
    doc_string = '''
-   mux.py <session_spec_file>
+   smux.py <session_spec_file>
 
    The format of session_spec_file consists of ini-style parameters followed by
    lists of commands delimited by lines beginning with '---'.
