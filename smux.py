@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
 # Copyright (c) 2014 Henry Qin
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -51,26 +51,26 @@ def newWindow():
    if totalWindows < MAX_WINDOWS:
        tcmd("new-window")
        totalWindows += 1
-   
+
 def getCurrentWindow():
    return int(tget("display-message -p '#I'"))
-   
+
 def carvePanes(numPerWindow, layout):
    for i in xrange(numPerWindow - 1):
        splitWindow()
        tcmd("select-layout %s" % layout)
    tcmd("select-layout %s" % layout)
    return getCurrentWindow()
-    
-      
+
+
 def sendCommand(cmd, pane = 0, window = None, ex = True):
-   time.sleep(0.1) 
+   time.sleep(0.1)
    if not window: window = getCurrentWindow()
    if ex:
        tcmd("send-keys -t %d.%d '%s ' Enter" % (window, pane,cmd))
    else:
        tcmd("send-keys -t %d.%d '%s'" % (window, pane,cmd))
-   
+
 
 # Commands is a list of lists, where each list is a sequence of
 # commands to give to particular window.
@@ -79,7 +79,7 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
 # nothing can be run after the attach.
 def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = None):
    # Defend against forkbombs
-   if not numPanesPerWindow  > 0: 
+   if not numPanesPerWindow  > 0:
        print "Forkbomb attempt detected!"
        return
    if numPanesPerWindow > 30:
@@ -91,21 +91,21 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = 
        tmux = False
    else:
        newWindow()
-   
+
    panesNeeded = len(commands)
    index = 0
    while panesNeeded > 0:
       windowNum = carvePanes(numPanesPerWindow, layout)
       panesNeeded -= numPanesPerWindow
-      
+
       # Send the commands in with CR
-      for i in xrange(min(numPanesPerWindow, len(commands))): 
-         print i 
+      for i in xrange(min(numPanesPerWindow, len(commands))):
+         print i
          for x in commands[i]:
             sendCommand(x,i, windowNum)
 
       # Pop off the commands we just finished with
-      for i in xrange(min(numPanesPerWindow, len(commands))): 
+      for i in xrange(min(numPanesPerWindow, len(commands))):
          commands.pop(0)
 
       # Create a new window if necessary
@@ -115,7 +115,7 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = 
    if executeBeforeAttach: executeBeforeAttach()
    if not tmux:
       tcmd("attach-session")
-   
+
 
 def startSession(file):
   cmds = []
@@ -123,7 +123,7 @@ def startSession(file):
   # default args in place
   args = {"PANES_PER_WINDOW" : "4", "LAYOUT" : "tiled"}
   cur_cmds = None
-  for line in file: 
+  for line in file:
     line = line.strip()
     # comments
     if line == '' or line.startswith("#"): continue
@@ -145,27 +145,27 @@ def startSession(file):
 
     else: # Actual session is being added to
        cur_cmds.append(line.strip())
-      
+
   if cur_cmds:
     cmds.append(cur_cmds)
   # Start the sessions
   create(int(args['PANES_PER_WINDOW']), cmds, args['LAYOUT'])
-      
+
 def usage():
    doc_string = '''
    mux.py <session_spec_file>
 
    The format of session_spec_file consists of ini-style parameters followed by
-   lists of commands delimited by lines beginning with '---'.  
+   lists of commands delimited by lines beginning with '---'.
 
    Any line starting with a # is considered a comment and ignored.
 
    Currently there are two supported parameters.
-   
-   PANES_PER_WINDOW, 
+
+   PANES_PER_WINDOW,
        The number of panes that each window will be carved into
 
-   LAYOUT, 
+   LAYOUT,
        One of the five standard tmux layouts, given below.
        even-horizontal, even-vertical, main-horizontal, main-vertical, tiled.
 
@@ -179,7 +179,7 @@ def usage():
        cat /proc/cpuinfo | less
        ----------
        echo 'This is pane 2'
-       cat /proc/meminfo 
+       cat /proc/meminfo
        ----------
        echo 'This is pane 3'
        uname -a
@@ -187,7 +187,7 @@ def usage():
        echo "This is pane 4"
        cat /etc/issue
        ----------
-   
+
    '''
    print doc_string
    sys.exit(1)
@@ -200,5 +200,5 @@ def main():
     except:
       print >>sys.stderr, 'File "%s" does not exist.' % sys.argv[1]
       sys.exit(2)
-        
+
 if __name__ == "__main__": main()
