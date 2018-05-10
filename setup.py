@@ -25,7 +25,7 @@ Installation
 
 Run the following command::
 
-    sudo pip install smux
+    sudo pip install smux.py
 
 Usage (as a command line tool)
 ========================================
@@ -65,8 +65,8 @@ smux has a single API call ``create``::
 """
 
 setup(
-  name="smux",
-  version='0.6',
+  name="smux.py",
+  version='0.1',
   scripts=['smux.py'],
   author="Henry Qin",
   author_email="root@hq6.me",
