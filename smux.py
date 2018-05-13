@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from __future__ import print_function
 
 import os
 import sys
@@ -56,7 +57,7 @@ def getCurrentWindow():
    return int(tget("display-message -p '#I'"))
 
 def carvePanes(numPerWindow, layout):
-   for i in xrange(numPerWindow - 1):
+   for i in range(numPerWindow - 1):
        splitWindow()
        tcmd("select-layout %s" % layout)
    tcmd("select-layout %s" % layout)
@@ -80,10 +81,10 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
 def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = None):
    # Defend against forkbombs
    if not numPanesPerWindow  > 0:
-       print "Forkbomb attempt detected!"
+       print("Forkbomb attempt detected!")
        return
    if numPanesPerWindow > 30:
-       print "Number per window must be less than 30!"
+       print("Number per window must be less than 30!")
        return
    tmux = True
    if not os.environ.get('TMUX'): # Session exist
@@ -99,13 +100,13 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = 
       panesNeeded -= numPanesPerWindow
 
       # Send the commands in with CR
-      for i in xrange(min(numPanesPerWindow, len(commands))):
-         print i
+      for i in range(min(numPanesPerWindow, len(commands))):
+         print(i)
          for x in commands[i]:
             sendCommand(x,i, windowNum)
 
       # Pop off the commands we just finished with
-      for i in xrange(min(numPanesPerWindow, len(commands))):
+      for i in range(min(numPanesPerWindow, len(commands))):
          commands.pop(0)
 
       # Create a new window if necessary
@@ -139,8 +140,8 @@ def startSession(file):
            left,right = line.split('=',1)
            args[left.strip()] = right.strip()
        except:
-           print "Argment '%s' ignored" % line
-           print "Arguments must be in the form of key = value"
+           print("Argment '%s' ignored" % line)
+           print("Arguments must be in the form of key = value")
            continue
 
     else: # Actual session is being added to
@@ -189,7 +190,7 @@ def usage():
        ----------
 
    '''
-   print doc_string
+   print(doc_string)
    sys.exit(1)
 
 def main():
@@ -198,7 +199,7 @@ def main():
       with open(sys.argv[1]) as f:
         startSession(f)
     except:
-      print >>sys.stderr, 'File "%s" does not exist.' % sys.argv[1]
+      print('File "%s" does not exist.' % sys.argv[1], file=sys.stderr)
       sys.exit(2)
 
 if __name__ == "__main__": main()
