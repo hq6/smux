@@ -16,8 +16,14 @@ terminal.
 
 ## Installation
 
+Manual Method:
+
     git clone https://github.com/hq6/smux.git
     # Add the directory to your PATH
+
+Automatic Method:
+
+    sudo pip install smux.py
 
 ## Usage (as a command line tool)
    
