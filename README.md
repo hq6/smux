@@ -30,11 +30,12 @@ Automatic Method:
    0. Create a new file, either from scratch or by copying Sample.smux.
    1. (Optional) Specify PANES_PER_WINDOW and LAYOUT as described in the usage message.
    2. For every pane you want to launch, write an entry of the following form.
-
+         ```
          ---------
          command1
          command2
          command3
+         ```
 
       Note that a pane does not necessary need to run any commands.
 
