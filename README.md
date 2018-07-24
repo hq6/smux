@@ -11,7 +11,7 @@ terminal.
 
 ## Dependencies
 
- - Python2
+ - Python 2 or 3
  - tmux (any version)
 
 ## Installation
