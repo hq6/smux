@@ -66,13 +66,14 @@ smux has a single API call ``create``::
 
 setup(
   name="smux.py",
-  version='0.1.2',
-  scripts=['smux.py'],
+  version='0.1.6',
   author="Henry Qin",
   author_email="root@hq6.me",
   description="Simple tmux launcher that will take less than 2 minutes to learn and should work across all versions of tmux",
   long_description=long_description,
   platforms=["All platforms that tmux runs on."],
   license="MIT",
-  url="https://github.com/hq6/smux"
+  url="https://github.com/hq6/smux",
+  py_modules=['smux'],
+  scripts=['smux.py']
 )
