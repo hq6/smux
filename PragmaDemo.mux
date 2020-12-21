@@ -1,0 +1,9 @@
+NO_CREATE
+----------
+printf 'echo This is pane 1' | tmux load-buffer -b PWX -
+cat
+#smux paste-buffer -b PWX -d
+#smux sleep 5.5
+#smux send-keys Enter
+#smux sleep 2
+#smux send-keys C-d
