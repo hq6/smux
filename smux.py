@@ -85,6 +85,16 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
        args = shlex.split(cmd)[1:]
        if args[0] == 'paste-buffer':
            tcmd(f"paste-buffer -t ':{window}.{pane}' " + shlex.join(args[1:]))
+       elif args[0] == 'send-keys':
+           # This option is useful for sending something like "Enter" with
+           # semantic meaning, rather than literally. This is needed rather
+           # than just allowing the script to directly invoke `tmux send-keys`
+           # because the target pane may be runnig a completely different
+           # process which we want to feed special input to (e.g. it is waiting
+           # for the user to type a special key such as Enter).
+           tcmd(f"send-keys -t ':{window}.{pane}' " + shlex.join(args[1:]))
+       elif args[0] == 'sleep':
+           time.sleep(float(args[1]))
        return
    # We must send commands one character to avoid weird quote treatment by the
    # sell when invoking send-keys.
