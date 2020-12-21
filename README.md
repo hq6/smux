@@ -11,7 +11,7 @@ terminal.
 
 ## Dependencies
 
- - Python 2 or 3
+ - Python 3.8+
  - tmux (any version)
 
 ## Installation
@@ -23,7 +23,7 @@ Manual Method:
 
 Automatic Method:
 
-    sudo pip install smux.py
+    pip3 install smux.py
 
 ## Usage (as a command line tool)
    
