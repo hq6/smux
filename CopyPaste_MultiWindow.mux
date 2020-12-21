@@ -1,0 +1,6 @@
+----------
+echo 'echo This is pane 1' | tmux load-buffer -b PWX -
+#smux paste-buffer -b PWX -d
+----------
+echo 'echo This is pane 2' | tmux load-buffer -b PWX2 -
+#smux paste-buffer -b PWX2 -d
