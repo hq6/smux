@@ -1,4 +1,5 @@
 NO_CREATE
 ----------
 echo 'echo This is pane 1' | tmux load-buffer -b PWX -
+cat
 #smux paste-buffer -b PWX -d

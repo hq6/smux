@@ -129,6 +129,12 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
    if not tmux:
        tcmd("new-session -d")
    elif noCreate and len(commands) == 1:
+       # Run ourselves in a subshell, so that Python does not consume the input
+       # intended for the new foreground processes started by the script.
+       if not os.environ.get('SMUX_SUBSHELL'):
+           os.system(f'SMUX_SUBSHELL=1 {shlex.join(sys.argv)}  & > /dev/null 2>&1')
+           return
+
        # Target the current window that invoked this command.
        currentWindow = getCurrentWindow()
        currentPane = getCurrentPane()
