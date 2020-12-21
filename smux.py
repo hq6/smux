@@ -70,6 +70,13 @@ def carvePanes(numPerWindow, layout):
 def sendCommand(cmd, pane = 0, window = None, ex = True):
    def quoteKey(key):
        return f'"{key}"' if key == "'" else f"'{key}'"
+   # Deal with single quotes inside command by spliting the command by single
+   # quotes, wrapping the single quotes in double quotes, and wrapping the
+   # other parts in single quotes.
+   def prepareCommand(cmd):
+       if not "'" in cmd: return f"'{cmd}'"
+       return '"\'"'.join(f"'{x}'" for x in cmd.split("'"))
+
    time.sleep(0.1)
    if not window: window = getCurrentWindow()
    # If the command is a directive to smux itself, then do not pass it through.
@@ -82,12 +89,10 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
    # We must send commands one character to avoid weird quote treatment by the
    # sell when invoking send-keys.
    if ex:
-       for key in cmd:
-           tcmd(f"send-keys -t {window}.{pane} -l " + quoteKey(key))
+       tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
        tcmd(f"send-keys -t {window}.{pane} Enter")
    else:
-       for key in cmd:
-           tcmd(f"send-keys -t {window}.{pane} -l " + quoteKey(key))
+       tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
 
 def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = None, noCreate = False):
    """
