@@ -126,6 +126,10 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
      This can be useful for using smux to ssh into a machine and then run
      commands inside the ssh session.
    """
+   # Remove comments in commands
+   for i in range(len(commands)):
+       commands[i] = [line for line in commands[i] if not (line == '' or \
+           (line.startswith("#") and not line.startswith("#smux ")))]
 
    if not numPanesPerWindow  > 0:
        print("No panes specified.")
