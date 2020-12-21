@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (c) 2014-2020 Henry Qin
 #
@@ -20,13 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from __future__ import print_function
-
 import os
 import sys
 import time
 from subprocess import Popen, PIPE
 import traceback
+import shlex
 
 totalWindows = 0
 MAX_WINDOWS=500
@@ -71,6 +70,13 @@ def carvePanes(numPerWindow, layout):
 def sendCommand(cmd, pane = 0, window = None, ex = True):
    time.sleep(0.1)
    if not window: window = getCurrentWindow()
+   # If the command is a directive to smux itself, then do not pass it through.
+   if cmd.startswith("#smux "):
+       # Skip the initial command
+       args = shlex.split(cmd)[1:]
+       if args[0] == 'paste-buffer':
+           tcmd(f"paste-buffer -t ':{window}.{pane}' " + shlex.join(args[1:]))
+       return
    if ex:
        tcmd("send-keys -t %d.%d '%s ' Enter" % (window, pane,cmd))
    else:
@@ -155,7 +161,7 @@ def startSession(file):
   for line in file:
     line = line.strip()
     # comments
-    if line == '' or line.startswith("#"): continue
+    if line == '' or (line.startswith("#") and not line.startswith("#smux ")): continue
     # Start a new pane specification
     if line.startswith("---"):
        if cur_cmds is not None:
