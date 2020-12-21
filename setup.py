@@ -31,8 +31,8 @@ Usage (as a command line tool)
 ========================================
 
 0. Create a new file, either from scratch or by copying Sample.smux_.
-1. (Optional) Specify ``PANES_PER_WINDOW`` and ``LAYOUT`` as described in the
-   usage message.
+1. (Optional) Specify ``PANES_PER_WINDOW`` and ``LAYOUT`` and ``NO_CREATE`` as
+   described in the usage message.
 2. For every pane you want to launch, write an entry of the following form.::
 
       ---------

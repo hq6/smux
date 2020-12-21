@@ -1,0 +1,4 @@
+NO_CREATE
+----------
+echo 'This is pane 1'
+cat /proc/cpuinfo | less

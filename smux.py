@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2014-2018 Henry Qin
+# Copyright (c) 2014-2020 Henry Qin
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,6 +26,7 @@ import os
 import sys
 import time
 from subprocess import Popen, PIPE
+import traceback
 
 totalWindows = 0
 MAX_WINDOWS=500
@@ -95,6 +96,8 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
      True means smux should send the commands to the pane that the caller lives
      in, rather than creating new panes. Ignored if more than one command list
      is given, or caller is not currently running in a tmux session.
+     This can be useful for using smux to ssh into a machine and then run
+     commands inside the ssh session.
    """
 
    if not numPanesPerWindow  > 0:
@@ -147,7 +150,7 @@ def startSession(file):
   cmds = []
 
   # default args in place
-  args = {"PANES_PER_WINDOW" : "4", "LAYOUT" : "tiled"}
+  args = {"PANES_PER_WINDOW" : "4", "LAYOUT" : "tiled", "NO_CREATE" : False}
   cur_cmds = None
   for line in file:
     line = line.strip()
@@ -162,8 +165,11 @@ def startSession(file):
     # Configuration part
     if cur_cmds == None:
        try:
-           left,right = line.split('=',1)
-           args[left.strip()] = right.strip()
+           if line == 'NO_CREATE':
+             args["NO_CREATE"] = True
+           else:
+             left,right = line.split('=',1)
+             args[left.strip()] = right.strip()
        except:
            print("Argment '%s' ignored" % line)
            print("Arguments must be in the form of key = value")
@@ -175,7 +181,7 @@ def startSession(file):
   if cur_cmds:
     cmds.append(cur_cmds)
   # Start the sessions
-  create(int(args['PANES_PER_WINDOW']), cmds, args['LAYOUT'])
+  create(int(args['PANES_PER_WINDOW']), cmds, args['LAYOUT'], noCreate = args['NO_CREATE'])
 
 def usage():
    doc_string = '''
@@ -186,14 +192,19 @@ def usage():
 
    Any line starting with a # is considered a comment and ignored.
 
-   Currently there are two supported parameters.
+   Currently there are three supported parameters.
 
    PANES_PER_WINDOW,
-       The number of panes that each window will be carved into
+       The number of panes that each window will be carved into.
 
    LAYOUT,
        One of the five standard tmux layouts, given below.
        even-horizontal, even-vertical, main-horizontal, main-vertical, tiled.
+
+   NO_CREATE,
+       When given (no parameter value), smux will attempt to send the commands
+       to the caller's window. Option is ignored if more than one command
+       sequence if given, or caller is not inside a tmux session.
 
    Sample Input File:
 
@@ -224,6 +235,7 @@ def main():
       with open(sys.argv[1]) as f:
         startSession(f)
     except:
+      traceback.print_exc()
       print('File "%s" does not exist.' % sys.argv[1], file=sys.stderr)
       sys.exit(2)
 
