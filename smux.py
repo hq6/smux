@@ -56,6 +56,9 @@ def newWindow():
 def getCurrentWindow():
    return int(tget("display-message -p '#I'"))
 
+def getCurrentPane():
+   return int(tget("display-message -p '#P'"))
+
 def carvePanes(numPerWindow, layout):
    for i in range(numPerWindow - 1):
        splitWindow()
@@ -73,15 +76,29 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
        tcmd("send-keys -t %d.%d '%s'" % (window, pane,cmd))
 
 
-# Commands is a list of lists, where each list is a sequence of
-# commands to give to particular window.
-# executeBeforeAttach is a function that a client can pass in to be executed
-# before the attach (assuming we are not inside a tmux already), because
-# nothing can be run after the attach.
-def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = None):
-   # Defend against forkbombs
+def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = None, noCreate = False):
+   """
+   Create a set of tmux panes and run each command list in commands in its own pane.
+
+   Parameters
+   ----------
+   numPanesPerWindow: int
+     The number of panes to create in each window. If there are more lists of
+     commands than numPanesPerWindow, more windows will be created.
+   Commands : list(list(str))
+     A list of command lists. Each command list will be send to a given pane.
+   executeBeforeAttach : Callable[[], None]
+     A function that a client can pass in to be executed after creating the
+     windows. For example, one can synchronize the panes by passing the following:
+     lambda : smux.tcmd("setw synchronize-panes on")
+   noCreate : bool
+     True means smux should send the commands to the pane that the caller lives
+     in, rather than creating new panes. Ignored if more than one command list
+     is given, or caller is not currently running in a tmux session.
+   """
+
    if not numPanesPerWindow  > 0:
-       print("Forkbomb attempt detected!")
+       print("No panes specified.")
        return
    if numPanesPerWindow > 30:
        print("Number per window must be less than 30!")
@@ -90,6 +107,13 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = 
    if not os.environ.get('TMUX'): # Session exist
        tcmd("new-session -d")
        tmux = False
+   elif noCreate and len(commands) == 1:
+       # Target the current window that invoked this command.
+       currentWindow = getCurrentWindow()
+       currentPane = getCurrentPane()
+       for x in commands[0]:
+          sendCommand(x, currentPane, currentWindow)
+       return
    else:
        newWindow()
 
@@ -113,7 +137,7 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeBeforeAttach = 
       if panesNeeded > 0:
         newWindow()
 
-   if executeBeforeAttach: executeBeforeAttach()
+   if executeAfterCreate: executeAfterCreate()
    if not tmux:
       tcmd("attach-session")
 
