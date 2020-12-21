@@ -103,10 +103,11 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
    if numPanesPerWindow > 30:
        print("Number per window must be less than 30!")
        return
-   tmux = True
-   if not os.environ.get('TMUX'): # Session exist
+   tmux = os.environ.get('TMUX')
+   if noCreate and (not tmux or len(commands) != 1):
+       print("noCreate parameter ignored because we are not in a tmux session or len(commands) != 1")
+   if not tmux:
        tcmd("new-session -d")
-       tmux = False
    elif noCreate and len(commands) == 1:
        # Target the current window that invoked this command.
        currentWindow = getCurrentWindow()
