@@ -68,6 +68,8 @@ def carvePanes(numPerWindow, layout):
 
 
 def sendCommand(cmd, pane = 0, window = None, ex = True):
+   def quoteKey(key):
+       return f'"{key}"' if key == "'" else f"'{key}'"
    time.sleep(0.1)
    if not window: window = getCurrentWindow()
    # If the command is a directive to smux itself, then do not pass it through.
@@ -77,11 +79,15 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
        if args[0] == 'paste-buffer':
            tcmd(f"paste-buffer -t ':{window}.{pane}' " + shlex.join(args[1:]))
        return
+   # We must send commands one character to avoid weird quote treatment by the
+   # sell when invoking send-keys.
    if ex:
-       tcmd("send-keys -t %d.%d '%s ' Enter" % (window, pane,cmd))
+       for key in cmd:
+           tcmd(f"send-keys -t {window}.{pane} -l " + quoteKey(key))
+       tcmd(f"send-keys -t {window}.{pane} Enter")
    else:
-       tcmd("send-keys -t %d.%d '%s'" % (window, pane,cmd))
-
+       for key in cmd:
+           tcmd(f"send-keys -t {window}.{pane} -l " + quoteKey(key))
 
 def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = None, noCreate = False):
    """
