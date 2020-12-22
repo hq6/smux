@@ -7,4 +7,6 @@ cat
 #smux send-keys Enter
 #smux sleep 2
 #smux send-keys C-d
-#smux shell tmux capture-pane -t "${window}.${pane}" -p
+#smux shell bash -c 'while true; do sleep 1; output=$(tmux capture-pane -t ":${window}.${pane}" -p | tail -2); if [[ $output == *"Enter password:"* ]]; then break; fi; done'
+#
+Password
