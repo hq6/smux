@@ -95,6 +95,12 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
            tcmd(f"send-keys -t ':{window}.{pane}' " + shlex.join(args[1:]))
        elif args[0] == 'sleep':
            time.sleep(float(args[1]))
+       elif args[0] == 'shell':
+            # Use the suffix of the original string, because
+            # shlex.join(shlex.split(X))  turns double-quotes into
+            # single-quotes, which is undesirable for expading variables.
+            fullCommand = f'export window={window}; export pane={pane}; ' + cmd[cmd.index("shell") + len("shell"):]
+            os.system(fullCommand)
        return
    # We must send commands one character to avoid weird quote treatment by the
    # sell when invoking send-keys.

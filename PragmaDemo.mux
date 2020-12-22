@@ -7,3 +7,4 @@ cat
 #smux send-keys Enter
 #smux sleep 2
 #smux send-keys C-d
+#smux shell tmux capture-pane -t "${window}.${pane}" -p
