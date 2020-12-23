@@ -7,6 +7,18 @@ cat
 #smux send-keys Enter
 #smux sleep 2
 #smux send-keys C-d
-#smux shell bash -c 'while true; do sleep 1; output=$(tmux capture-pane -t ":${window}.${pane}" -p | tail -2); if [[ $output == *"Enter password:"* ]]; then break; fi; done'
-#
-Password
+
+sleep 5 && echo -n 'Enter password:' && read -s password
+#smux shell bash -c 'while true; \
+  do sleep 1; \
+  output=$(tmux capture-pane -t ":${window}.${pane}" -p | tail -1);\
+  if [[ $output == *"Enter password:"* ]]; then break; fi; \
+  done'
+
+# Note that in a real application, you would probably fetch the password from
+# some secret store (such as AWS SecretsManager), shove it into a tmux buffer
+# and then securely pasting it using `#smux paste-buffer -d`, rather than
+# echoing it here in this example.
+# rather than echoing it in plane text here.
+ThePassword
+echo "Password was $password"

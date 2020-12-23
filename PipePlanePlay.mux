@@ -1,10 +1,14 @@
 NO_CREATE
 ---
+# Fetch a password from a secret store. We'll pretend the `echo` command is actually a secret store.
+echo SuperSecretPassword | tmux load-buffer -
 # Start a process that will create a password prompt after a few seconds.
 sleep 5 && echo -n 'Enter password:' && read -s password
 
 # Wait for the password prompt to appear. Note that there is a race here with
-# pipe-pane reading after the previous command prints its prompt.
+# pipe-pane reading after the previous command prints its prompt. If the
+# command generating the password prompt is too fast, then we can use
+# capture-pane instead.
 #smux shell tmux pipe-pane -t ":${window}.${pane}" 'cat > /tmp/capture'
 #smux shell bash -c 'while [[ $(tail -2 /tmp/capture) != *"Enter password:"* ]]; do sleep 1; done'
 #smux shell tmux pipe-pane -t ":${window}.${pane}"
@@ -12,5 +16,7 @@ sleep 5 && echo -n 'Enter password:' && read -s password
 #smux sleep 1
 
 # Enter the password
-Password123
+#smux paste-buffer -d
+
+# Verify that the password is what we entered.
 echo $password
