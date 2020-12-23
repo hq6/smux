@@ -136,6 +136,13 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
    else:
        tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
 
+# Capture these variables on import if we are inside a tmux, so that their
+# values do not change if the user moves around after invoking a slow command
+# with noCreate.
+if os.environ.get('TMUX'):
+  callerWindow = getCurrentWindow()
+  callerPane = getCurrentPane()
+
 def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = None, noCreate = False):
    """
    Create a set of tmux panes and run each command list in commands in its own pane.
@@ -178,12 +185,12 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
        # Run ourselves in a subshell, so that Python does not consume the input
        # intended for the new foreground processes started by the script.
        if not os.environ.get('SMUX_SUBSHELL'):
-           os.system(f'SMUX_SUBSHELL=1 {shlex.join(sys.argv)}  & > /dev/null 2>&1')
+           os.system(f'SMUX_SUBSHELL=1 CALLER_WINDOW={callerWindow} CALLER_PANE={callerPane} {shlex.join(sys.argv)} & > /dev/null 2>&1')
            return
 
        # Target the current window that invoked this command.
-       currentWindow = getCurrentWindow()
-       currentPane = getCurrentPane()
+       currentWindow = int(os.environ.get("CALLER_WINDOW"))
+       currentPane =  int(os.environ.get("CALLER_PANE"))
        for x in commands[0]:
           sendCommand(x, currentPane, currentWindow)
        return
