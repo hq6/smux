@@ -1,0 +1,16 @@
+NO_CREATE
+---
+# Start a process that will create a password prompt after a few seconds.
+sleep 5 && echo -n 'Enter password:' && read -s password
+
+# Wait for the password prompt to appear. Note that there is a race here with
+# pipe-pane reading after the previous command prints its prompt.
+#smux shell tmux pipe-pane -t ":${window}.${pane}" 'cat > /tmp/capture'
+#smux shell bash -c 'while [[ $(tail -2 /tmp/capture) != *"Enter password:"* ]]; do sleep 1; done'
+#smux shell tmux pipe-pane -t ":${window}.${pane}"
+#
+#smux sleep 1
+
+# Enter the password
+Password123
+echo $password
