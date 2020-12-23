@@ -66,6 +66,32 @@ def carvePanes(numPerWindow, layout):
    tcmd("select-layout %s" % layout)
    return getCurrentWindow()
 
+def digestCommands(commands):
+   # Remove comments and empty lines before joining lines.
+   # Comments are lines that start with # but not #smux.
+   rawCommands = [x for x in commands if x != '' and (x.startswith("#smux ") or not x.startswith("#"))]
+   digestedCommands = []
+   bufferedLine = None
+   for line in rawCommands:
+     # The previous line initiated a continuation.
+     if bufferedLine:
+        bufferedLine += line
+
+        # Check if next line should be joined.
+        if bufferedLine.endswith("\\"):
+          bufferedLine = bufferedLine[:-1]
+        else:
+          digestedCommands.append(bufferedLine)
+          bufferedLine = None
+     # Previous line did not initiate or continue a continuation.
+     else:
+       if line.startswith("#smux ") and line.endswith("\\"):
+         bufferedLine = line[:-1]
+       else:
+         digestedCommands.append(line)
+   # The last line ended in a continuation for some reason.
+   if bufferedLine: digestedCommands.append(bufferedLine)
+   return digestedCommands
 
 def sendCommand(cmd, pane = 0, window = None, ex = True):
    def quoteKey(key):
@@ -132,10 +158,10 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
      This can be useful for using smux to ssh into a machine and then run
      commands inside the ssh session.
    """
-   # Remove comments in commands
+   # Remove comments in commands and join together line-continuations for #smux
+   # commands.
    for i in range(len(commands)):
-       commands[i] = [line for line in commands[i] if not (line == '' or \
-           (line.startswith("#") and not line.startswith("#smux ")))]
+       commands[i] = digestCommands(commands[i])
 
    if not numPanesPerWindow  > 0:
        print("No panes specified.")
