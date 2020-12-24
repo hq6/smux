@@ -230,6 +230,8 @@ def startSession(file):
   cur_cmds = None
   for line in file:
     line = line.strip()
+    # comments
+    if line == '' or (line.startswith("#") and not line.startswith("#smux ")): continue
     # Start a new pane specification
     if line.startswith("---"):
        if cur_cmds is not None:
