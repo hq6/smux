@@ -26,6 +26,7 @@ import time
 from subprocess import Popen, PIPE
 import traceback
 import shlex
+import threading
 
 totalWindows = 0
 MAX_WINDOWS=500
@@ -143,7 +144,7 @@ if os.environ.get('TMUX'):
   callerWindow = getCurrentWindow()
   callerPane = getCurrentPane()
 
-def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = None, noCreate = False):
+def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = None, noCreate = False, useThreads = False):
    """
    Create a set of tmux panes and run each command list in commands in its own pane.
 
@@ -164,7 +165,19 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
      is given, or caller is not currently running in a tmux session.
      This can be useful for using smux to ssh into a machine and then run
      commands inside the ssh session.
+   useThreads: bool
+     True means that smux will handle the commands for each pane using different
+     threads, so that if a command includes a slow pragma such as #smux sleep,
+     it will not slow down the execution of commands in other panes.
+     This should be to False unless the caller is certain that the commands in
+     different panes are independent of each other's timing.
    """
+   # A simple function for sending a set of commands. Needed because lambdas
+   # cannot accept for loops for threads.
+   def sendCommandList(commandList, windowNumber, paneIndex):
+       for command in commandList:
+          sendCommand(command, paneIndex, windowNumber)
+
    # Remove comments in commands and join together line-continuations for #smux
    # commands.
    for i in range(len(commands)):
@@ -191,14 +204,15 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
        # Target the current window that invoked this command.
        currentWindow = int(os.environ.get("CALLER_WINDOW"))
        currentPane =  int(os.environ.get("CALLER_PANE"))
-       for x in commands[0]:
-          sendCommand(x, currentPane, currentWindow)
+       sendCommandList(commands[0], currentWindow, currentPane)
        return
    else:
        newWindow()
 
    panesNeeded = len(commands)
-   index = 0
+   # There is no benefit to threads if there is only one pane
+   useThreads = useThreads and panesNeeded > 1
+   threads = []
    while panesNeeded > 0:
       windowNum = carvePanes(numPanesPerWindow, layout)
       panesNeeded -= numPanesPerWindow
@@ -206,8 +220,13 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
       # Send the commands in with CR
       for i in range(min(numPanesPerWindow, len(commands))):
          print(i)
-         for x in commands[i]:
-            sendCommand(x,i, windowNum)
+         if useThreads:
+           # We use a list comprehension because Python disallows for loops in lists.
+           thread = threading.Thread(target=sendCommandList, args=(commands[i], windowNum, i))
+           thread.start()
+           threads.append(thread)
+         else:
+           sendCommandList(commands[i], windowNum, i)
 
       # Pop off the commands we just finished with
       for i in range(min(numPanesPerWindow, len(commands))):
@@ -217,9 +236,14 @@ def create(numPanesPerWindow, commands, layout = 'tiled', executeAfterCreate = N
       if panesNeeded > 0:
         newWindow()
 
-   if executeAfterCreate: executeAfterCreate()
    if not tmux:
       tcmd("attach-session")
+   for thread in threads:
+     thread.join()
+
+   # It is important to run this after the threads are joined, because only
+   # then can we be guaranteed that all panes are truly finished creating.
+   if executeAfterCreate: executeAfterCreate()
 
 
 def startSession(file):

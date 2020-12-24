@@ -1,0 +1,18 @@
+# This is a comment
+PANES_PER_WINDOW = 4
+LAYOUT = tiled
+USE_THREADS
+----------
+echo 'This is pane 1'
+#smux sleep 10
+cat /proc/cpuinfo | less
+----------
+echo 'This is pane 2'
+cat /proc/meminfo 
+----------
+echo 'This is pane 3'
+uname -a
+----------
+echo "This is pane 4"
+cat /etc/issue
+----------
