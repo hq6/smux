@@ -250,7 +250,7 @@ def startSession(file):
   cmds = []
 
   # default args in place
-  args = {"PANES_PER_WINDOW" : "4", "LAYOUT" : "tiled", "NO_CREATE" : False}
+  args = {"PANES_PER_WINDOW" : "4", "LAYOUT" : "tiled", "NO_CREATE" : False, "USE_THREADS": False}
   cur_cmds = None
   for line in file:
     line = line.strip()
@@ -267,6 +267,8 @@ def startSession(file):
        try:
            if line == 'NO_CREATE':
              args["NO_CREATE"] = True
+           elif line == 'USE_THREADS':
+             args['USE_THREADS'] = True
            else:
              left,right = line.split('=',1)
              args[left.strip()] = right.strip()
@@ -281,7 +283,8 @@ def startSession(file):
   if cur_cmds:
     cmds.append(cur_cmds)
   # Start the sessions
-  create(int(args['PANES_PER_WINDOW']), cmds, args['LAYOUT'], noCreate = args['NO_CREATE'])
+  create(int(args['PANES_PER_WINDOW']), cmds, args['LAYOUT'], noCreate = args['NO_CREATE'],
+      useThreads = args['USE_THREADS'])
 
 def usage():
    doc_string = '''
@@ -305,6 +308,12 @@ def usage():
        When given (no parameter value), smux will attempt to send the commands
        to the caller's window. Option is ignored if more than one command
        sequence if given, or caller is not inside a tmux session.
+
+   USE_THREADS,
+       When given (no parameter value), smux will use a different thread for
+       sending commands to each pane. It will not exit until all the threads
+       are joined. This parameter is ignored when NO_CREATE is given, or when
+       there is only one list of commands.
 
    Sample Input File:
 
