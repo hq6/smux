@@ -23,6 +23,7 @@
 import os
 import sys
 import time
+import re
 from subprocess import Popen, PIPE
 import traceback
 import shlex
@@ -66,6 +67,34 @@ def carvePanes(numPerWindow, layout):
        tcmd("select-layout %s" % layout)
    tcmd("select-layout %s" % layout)
    return getCurrentWindow()
+
+def waitForStringOrRegex(window, pane, args, isRegex):
+    if len(args) == 0:
+        print("waitForString or waitForRegex offered without mandatory argument, ignoring")
+        return
+
+    # This will be treated as either string or regex depending on isRegex.
+    needle = args[0]
+    regexNeedle = re.compile(needle) if isRegex else None
+
+    pollingInterval = 1.0
+    numLinesToCapture = 1
+    if len(args) > 1:
+        pollingInterval = float(args[1])
+    if len(args) > 2:
+        numLinesToCapture = int(args[2])
+    while True:
+      time.sleep(pollingInterval)
+
+      # Join lines so that we can capture a string spanning multiple lines.
+      rawHayStack = tget(f"capture-pane -t :{window}.{pane} -p").decode('utf-8')
+      # Need to strip to remove the trailing newline from output of capture-pane.
+      haystack = ''.join(rawHayStack.strip().split('\n')[-numLinesToCapture:])
+
+      if isRegex:
+        if regexNeedle.search(haystack): return
+      else:
+        if needle in haystack: return
 
 def digestCommands(commands):
    # Remove comments and empty lines before joining lines.
@@ -128,6 +157,14 @@ def sendCommand(cmd, pane = 0, window = None, ex = True):
             # single-quotes, which is undesirable for expading variables.
             fullCommand = f'export window={window}; export pane={pane}; ' + cmd[cmd.index("shell") + len("shell"):]
             os.system(fullCommand)
+       elif args[0] == 'waitForString':
+            # This command and waitForRegex relies on capture-pane polling (not
+            # pipe-pane), which implies that it only works if the string we are
+            # waiting for sticks around on the screen for a while, rather than
+            # scrolling by.
+            waitForStringOrRegex(window, pane, args[1:], False)
+       elif args[0] == 'waitForRegex':
+            waitForStringOrRegex(window, pane, args[1:], True)
        return
    # We must send commands one character to avoid weird quote treatment by the
    # sell when invoking send-keys.

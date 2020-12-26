@@ -1,0 +1,8 @@
+NO_CREATE
+----------
+echo 'Say Hello followed a space and immediately by World to trigger a surprise.'
+#smux waitForString "Hello World"
+Greetings, smux user!
+echo 'Say a line with World and Goodbye in reverse order'
+#smux waitForRegex "Goodbye .* World"
+echo "Regex worked!"
