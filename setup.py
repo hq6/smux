@@ -66,7 +66,7 @@ smux has a single API call ``create``::
 
 setup(
   name="smux.py",
-  version='0.1.13',
+  version='0.1.14',
   author="Henry Qin",
   author_email="root@hq6.me",
   description="Simple tmux launcher that will take less than 2 minutes to learn and should work across all versions of tmux",
