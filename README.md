@@ -17,6 +17,8 @@ internally (for example, to wait for user input before proceeding to send more
 commands to various panes). See `#smux directives` in the
 [documentation](https://github.com/hq6/smux/blob/master/smux.txt#L146) for details.
 
+See the [samples](https://github.com/hq6/smux/tree/master/samples) directory for example smux scripts.
+
 ## Dependencies
 
  - Python 3.8+
