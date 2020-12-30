@@ -6,3 +6,7 @@ package: clean
 
 upload: package
 	python3 -m twine upload dist/*
+
+doc:
+	pydoc  smux > smux.txt
+	sed -i '/^DATA$$/,$$d' smux.txt

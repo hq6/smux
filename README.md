@@ -3,11 +3,19 @@
 The minimal tmux launcher, with the fewest options to set and the fastest
 ramp-up time.
 
-Originally created to be tool to make it easier to reproduce (and interactively
+Originally created as a tool to make it easier to reproduce (and interactively
 debug) distributed systems bugs that required sshing into a lot of servers and
 starting processes, smux is a general purpose tmux launcher whose input
 resembles in all respects a concatenation of bash scripts to be run on each
 terminal.
+
+In addition to being able to send literal commands to tmux windows, `smux`
+offers a variety of special `#smux` directives useable in its input files that
+make it easy to do certain `expect`-esque tasks inside tmux, such as waiting
+for prompts, pasting buffers, and executing arbitrary shell commmands
+internally (for example, to wait for user input before proceeding to send more
+commands to various panes). See `#smux directives` in the
+[documentation](https://github.com/hq6/smux/blob/master/smux.txt#L146) for details.
 
 ## Dependencies
 
@@ -26,9 +34,9 @@ Automatic Method:
     pip3 install smux.py
 
 ## Usage (as a command line tool)
-   
+
    0. Create a new file, either from scratch or by copying Sample.smux.
-   1. (Optional) Specify PANES_PER_WINDOW and LAYOUT as described in the usage message.
+   1. (Optional) Specify desired options described in `help(smux)`.
    2. For every pane you want to launch, write an entry of the following form.
          ```
          ---------

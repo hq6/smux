@@ -1,5 +1,52 @@
 #!/usr/bin/env python3
 
+__doc__ = """smux.py <session_spec_file>
+
+The format of session_spec_file consists of ini-style parameters followed by
+lists of commands delimited by lines beginning with '---'.
+
+Any line starting with a # is considered a comment and ignored.
+
+Currently there are four supported parameters.
+
+PANES_PER_WINDOW,
+    The number of panes that each window will be carved into.
+
+LAYOUT,
+    One of the five standard tmux layouts, given below.
+    even-horizontal, even-vertical, main-horizontal, main-vertical, tiled.
+
+NO_CREATE,
+    When given (no parameter value), smux will attempt to send the commands
+    to the caller's window. Option is ignored if more than one command
+    sequence if given, or caller is not inside a tmux session.
+
+USE_THREADS,
+    When given (no parameter value), smux will use a different thread for
+    sending commands to each pane. It will not exit until all the threads
+    are joined. This parameter is ignored when NO_CREATE is given, or when
+    there is only one list of commands.
+
+Sample Input File:
+
+    # This is a comment
+    PANES_PER_WINDOW = 4
+    LAYOUT = tiled
+    ----------
+    echo 'This is pane 1'
+    cat /proc/cpuinfo | less
+    ----------
+    echo 'This is pane 2'
+    cat /proc/meminfo
+    ----------
+    echo 'This is pane 3'
+    uname -a
+    ----------
+    echo "This is pane 4"
+    cat /etc/issue
+    ----------
+
+"""
 # Copyright (c) 2014-2020 Henry Qin
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,6 +67,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+
 import os
 import sys
 import time
@@ -29,15 +77,17 @@ import traceback
 import shlex
 import threading
 
-totalWindows = 0
-MAX_WINDOWS = 500
+totalPanes = 0
+MAX_PANES = 500
 
 
 def tcmd(cmd):
+    """Execute the given tmux command synchronously and ignore any output."""
     os.system("tmux %s" % cmd)
 
 
 def tget(cmd):
+    """Execute the given tmux command synchronously and return any output."""
     proc = Popen("tmux %s" % cmd, stdout=PIPE, stderr=PIPE, shell=True)
     out, err = proc.communicate()
     exitcode = proc.returncode
@@ -45,31 +95,48 @@ def tget(cmd):
 
 
 def splitWindow():
-    global totalWindows
-    global MAX_WINDOWS
-    if totalWindows < MAX_WINDOWS:
+    """Split the current pane horizontally."""
+    global totalPanes
+    global MAX_PANES
+    if totalPanes < MAX_PANES:
         tcmd("split-window -d -h")
-        totalWindows += 1
+        totalPanes += 1
 
 
 def newWindow():
-    global totalWindows
-    global MAX_WINDOWS
-    if totalWindows < MAX_WINDOWS:
+    """Create a new tmux window and make it current."""
+    global totalPanes
+    global MAX_PANES
+    if totalPanes < MAX_PANES:
         tcmd("new-window")
-        totalWindows += 1
+        totalPanes += 1
 
 
 def getCurrentWindow():
+    """Retrieve the current window index as an int."""
     return int(tget("display-message -p '#I'"))
 
 
 def getCurrentPane():
+    """Retrieve the current pane index as an int."""
     return int(tget("display-message -p '#P'"))
 
 
-def carvePanes(numPerWindow, layout):
-    for i in range(numPerWindow - 1):
+def carvePanes(numPanes, layout):
+    """
+    Cut the current window into panes and set the requested layout.
+
+    Parameters
+    ----------
+    numPanes: int
+      The number of panes to cut the current window into.
+    layout: string
+      The name of one of the tmux preset layouts to use for the window that the
+      panes are being carved out of. Must be one of the following strings:
+      "even-horizontal", "even-vertical", "main-horizontal", "main-vertical",
+      "tiled".
+    """
+    for i in range(numPanes - 1):
         splitWindow()
         tcmd("select-layout %s" % layout)
     tcmd("select-layout %s" % layout)
@@ -77,6 +144,27 @@ def carvePanes(numPerWindow, layout):
 
 
 def waitForStringOrRegex(window, pane, args, isRegex):
+    """
+    Block calling thread until the given string or regex appears in the specified pane.
+
+    Parameters
+    ----------
+    window: int
+      The window index, equivalent to the value returned by
+      `display-message #{window_index}` in the target window.
+    pane: int
+      The pane index, equivalent to the value returned by
+      `display-message #{pane_index}` in the target pane.
+    args: list(str)
+      The arguments given by the user in the `#smux` directive.
+       * args[0] is assumed to be the string or regex searched we seek.
+       * args[1] if given, is the polling interval at which to poll for the
+         desired string or regex.
+       * args[2], if given, is the number of physical (displayed, not logical)
+         lines from the bottom of the pane to look for the target string or regex.
+    isRegex: bool
+      True means the args[0] should be treated as a regex.
+    """
     if len(args) == 0:
         print("waitForString or waitForRegex offered without mandatory argument, ignoring")
         return
@@ -110,8 +198,40 @@ def waitForStringOrRegex(window, pane, args, isRegex):
 
 
 def digestCommands(commands):
-    # Remove comments and empty lines before joining lines.
-    # Comments are lines that start with # but not #smux.
+    r"""
+    Remove comments and empty lines and join #smux commands.
+
+    Lines that start with `#` but not `#smux` are comments.
+    Lines that start with `#smux` and end with `\` are merged with subsequent
+    lines recursively.
+    Lines ending with `\` that are not part of a chain of consecutive lines
+    starting with `#smux` are left untouched.
+
+    Before:
+      # This is a comment.
+
+      #smux shell echo \
+      Hello \
+      smux
+
+      echo Hello \
+      World
+
+    After:
+      #smux shell echo Hello smux
+      echo Hello \
+      World
+
+    Parameters
+    ----------
+    commands: list(str)
+      A list of raw commands from a call to `create`.
+
+    Returns
+    -------
+    list(str)
+      A list of strings with comments removed and #smux lines joined.
+    """
     rawCommands = [x for x in commands if x != '' and (
         x.startswith("#smux ") or not x.startswith("#"))]
     digestedCommands = []
@@ -139,12 +259,59 @@ def digestCommands(commands):
     return digestedCommands
 
 
-def sendCommand(cmd, pane=0, window=None, ex=True):
-    def quoteKey(key):
-        return f'"{key}"' if key == "'" else f"'{key}'"
+def sendCommand(cmd, pane=0, window=None):
+    """
+    Send or execute a given command against a given pane.
 
+    This function examines the input string. If it begins with `#smux `, then
+    it is interpretted as a special function for smux itself to execute in the
+    context of the target pane. Otherwise, it is sent to the target pane as if
+    a human had typed it.
+
+    #smux directives
+    ----------------
+    paste-buffer [args]
+      Identical to tmux paste-buffer, except with the pane already specified.
+    send-keys [args]
+      Identical to tmux send-keys, except with the pane already specified.
+      This is useful for sending special keys such as `Enter`, since smux's
+      normal mode of operation is to send all keys literally.
+    sleep <seconds>
+      Sleep for a given number of seconds before executing or sending the next
+      command.
+    waitForString <string> [pollingInterval] [numLinesToExamine]
+      Wait until the given string appears in the last line of the target pane
+      before executing or sending the next command. Note that this directive
+      polls on the output of `tmux capture-pane`, so it only works reliably if
+      the string it is waiting for appears on the screen and stays on the
+      screen persistently until user input is received. That means it is
+      appropriate for waiting for shell or password prompts, but not waiting
+      for a particular line to appear in a streaming log. The polling interval
+      (default 1 second) and the number of lines examined can be overriden by
+      passing additional arguments.
+    waitForRegex  <regex> [pollingInterval] [numLinesToExamine]
+      Identical to waitForString except that the first argument is treated as a
+      Python regular expression rather than a literal string.
+    shell <args>
+      Execute a shell command using `/bin/sh`. The variables $window and $pane
+      are exported for use by the command. Output is not captured by smux.
+      Each instance of this directive runs in a separate shell.
+
+    Parameters
+    ----------
+    cmd: string
+      The command to either execute or send to the target window and pane.
+    window: int
+      The window index, equivalent to the value returned by
+      `display-message #{window_index}` in the target window.
+    pane: int
+      The pane index, equivalent to the value returned by
+      `display-message #{pane_index}` in the target pane.
+    """
     def prepareCommand(cmd):
         """
+        "Escape" a string for use with send-keys.
+
         Deal with single quotes inside command by spliting the command by single
         quotes, wrapping the single quotes in double quotes, and wrapping the
         other parts in single quotes.
@@ -156,9 +323,10 @@ def sendCommand(cmd, pane=0, window=None, ex=True):
     time.sleep(0.1)
     if not window:
         window = getCurrentWindow()
-    # If the command is a directive to smux itself, then do not pass it through.
+    # If the command is a directive to smux itself, then execute it instead of
+    # sending it to the pane directly.
     if cmd.startswith("#smux "):
-        # Skip the initial command
+        # Skip the #smux prefix.
         args = shlex.split(cmd)[1:]
         if args[0] == 'paste-buffer':
             tcmd(f"paste-buffer -t ':{window}.{pane}' " + shlex.join(args[1:]))
@@ -166,7 +334,7 @@ def sendCommand(cmd, pane=0, window=None, ex=True):
             # This option is useful for sending something like "Enter" with
             # semantic meaning, rather than literally. This is needed rather
             # than just allowing the script to directly invoke `tmux send-keys`
-            # because the target pane may be runnig a completely different
+            # because the target pane may be running a completely different
             # process which we want to feed special input to (e.g. it is waiting
             # for the user to type a special key such as Enter).
             tcmd(f"send-keys -t ':{window}.{pane}' " + shlex.join(args[1:]))
@@ -188,13 +356,9 @@ def sendCommand(cmd, pane=0, window=None, ex=True):
         elif args[0] == 'waitForRegex':
             waitForStringOrRegex(window, pane, args[1:], True)
         return
-    # We must send commands one character to avoid weird quote treatment by the
-    # sell when invoking send-keys.
-    if ex:
-        tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
-        tcmd(f"send-keys -t {window}.{pane} Enter")
-    else:
-        tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
+
+    tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
+    tcmd(f"send-keys -t {window}.{pane} Enter")
 
 
 # Capture these variables on import if we are inside a tmux, so that their
@@ -214,7 +378,7 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
     numPanesPerWindow: int
       The number of panes to create in each window. If there are more lists of
       commands than numPanesPerWindow, more windows will be created.
-    Commands : list(list(str))
+    commands : list(list(str))
       A list of command lists. Each command list will be send to a given pane.
     executeBeforeAttach : Callable[[], None]
       A function that a client can pass in to be executed after creating the
@@ -233,11 +397,16 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
       This should be to False unless the caller is certain that the commands in
       different panes are independent of each other's timing.
     """
-    # A simple function for sending a set of commands. Needed because lambdas
-    # cannot accept for loops for threads.
-    def sendCommandList(commandList, windowNumber, paneIndex):
+
+    def sendCommandList(commandList, window, pane):
+        """
+        Send a set of commands to the given pane pane.
+
+        This function is needed because lambdas cannot accept for loops for
+        threads.
+        """
         for command in commandList:
-            sendCommand(command, paneIndex, windowNumber)
+            sendCommand(command, pane, window)
 
     # Remove comments in commands and join together line-continuations for #smux
     # commands.
@@ -310,14 +479,18 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
         executeAfterCreate()
 
 
-def startSession(file):
+def startSession(file_):
+    """
+    Start a tmux session by parsing the given file for options and commands.
+
+    Options are documented at the top of the file.
+    """
     cmds = []
 
-    # default args in place
-    args = {"PANES_PER_WINDOW": "4", "LAYOUT": "tiled",
-            "NO_CREATE": False, "USE_THREADS": False}
+    args = {"PANES_PER_WINDOW": "4", "LAYOUT": "tiled", "NO_CREATE": False,
+            "USE_THREADS": False}
     cur_cmds = None
-    for line in file:
+    for line in file_:
         line = line.strip()
         # comments
         if line == '' or (line.startswith("#") and not line.startswith("#smux ")):
@@ -354,59 +527,12 @@ def startSession(file):
 
 
 def usage():
-    doc_string = '''
-   smux.py <session_spec_file>
-
-   The format of session_spec_file consists of ini-style parameters followed by
-   lists of commands delimited by lines beginning with '---'.
-
-   Any line starting with a # is considered a comment and ignored.
-
-   Currently there are three supported parameters.
-
-   PANES_PER_WINDOW,
-       The number of panes that each window will be carved into.
-
-   LAYOUT,
-       One of the five standard tmux layouts, given below.
-       even-horizontal, even-vertical, main-horizontal, main-vertical, tiled.
-
-   NO_CREATE,
-       When given (no parameter value), smux will attempt to send the commands
-       to the caller's window. Option is ignored if more than one command
-       sequence if given, or caller is not inside a tmux session.
-
-   USE_THREADS,
-       When given (no parameter value), smux will use a different thread for
-       sending commands to each pane. It will not exit until all the threads
-       are joined. This parameter is ignored when NO_CREATE is given, or when
-       there is only one list of commands.
-
-   Sample Input File:
-
-       # This is a comment
-       PANES_PER_WINDOW = 4
-       LAYOUT = tiled
-       ----------
-       echo 'This is pane 1'
-       cat /proc/cpuinfo | less
-       ----------
-       echo 'This is pane 2'
-       cat /proc/meminfo
-       ----------
-       echo 'This is pane 3'
-       uname -a
-       ----------
-       echo "This is pane 4"
-       cat /etc/issue
-       ----------
-
-   '''
-    print(doc_string)
+    print(__doc__)
     sys.exit(1)
 
 
 def main():
+    """Entry point for the script."""
     if len(sys.argv) < 2 or sys.argv[1] in ['--help', '-h', '-?']:
         usage()
 

@@ -2,7 +2,7 @@ from setuptools import setup
 
 long_description=\
 """
-smux
+smux.py
 ====================
 
 The minimal tmux launcher, with the fewest options to set and the fastest
