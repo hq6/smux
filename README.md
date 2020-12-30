@@ -1,7 +1,7 @@
 # smux
 
 The minimal tmux launcher, with the fewest options to set and the fastest
-ramp-up time.
+ramp-up time. This project is on [Github](https://github.com/hq6/smux)  and on [PyPi](https://pypi.org/project/smux.py/) (this README is shared).
 
 Originally created as a tool to make it easier to reproduce (and interactively
 debug) distributed systems bugs that required sshing into a lot of servers and
