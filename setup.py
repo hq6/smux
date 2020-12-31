@@ -4,10 +4,7 @@ from setuptools import setup
 with open('README.md') as f:
     long_description = f.read()
 
-short_description = """
-Simple tmux launcher that will take less than 2 minutes to learn and should
-work across all versions of tmux.
-"""
+short_description = "Simple tmux launcher that will take less than 2 minutes to learn."
 
 setup(
   name="smux.py",
