@@ -405,6 +405,10 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
         This function is needed because lambdas cannot accept for loops for
         threads.
         """
+        # Sleep for 500 ms to give time for the tty to notice its new
+        # dimensions. Empirically, this prevents commands like `man tmux` from
+        # rendering with incorrect dimensions.
+        time.sleep(0.5)
         for command in commandList:
             sendCommand(command, pane, window)
 
