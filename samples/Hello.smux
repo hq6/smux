@@ -1,0 +1,9 @@
+---
+echo "This is pane 1."
+---
+cd /tmp
+git clone https://github.com/hq6/smux
+cd smux
+less smux.py
+---
+man tmux

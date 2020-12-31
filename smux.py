@@ -1,11 +1,29 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2014-2020 Henry Qin
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
 __doc__ = """smux.py <session_spec_file>
 
 The format of session_spec_file consists of ini-style parameters followed by
 lists of commands delimited by lines beginning with '---'.
-
-Any line starting with a # is considered a comment and ignored.
 
 Currently there are four supported parameters.
 
@@ -27,6 +45,44 @@ USE_THREADS,
     are joined. This parameter is ignored when NO_CREATE is given, or when
     there is only one list of commands.
 
+There are three types of commands that can appear in an smux file.
+1. Ordinary commands are sent to the target pane without modification as if a
+   user had typed them by hand.
+2. Comments are lines that begin with `#` and are ignored.
+3. #smux directives, which are lines beginning with `#smux ` and invoke special
+   functionality inside the smux itself. The currently supported #smux
+   directive are described in the following section.
+
+#smux directives
+----------------
+paste-buffer [args]
+  Identical to tmux paste-buffer, except with the pane already specified.
+send-keys [args]
+  Identical to tmux send-keys, except with the pane already specified.
+  This is useful for sending special keys such as `Enter`, since smux's
+  normal mode of operation is to send all keys literally.
+waitForString <string> [pollingInterval] [numLinesToExamine]
+  Wait until the given string appears in the last line of the target pane
+  before executing or sending the next command. Note that this directive
+  polls on the output of `tmux capture-pane`, so it only works reliably if
+  the string it is waiting for appears on the screen and stays on the
+  screen persistently until user input is received. That means it is
+  appropriate for waiting for shell or password prompts, but not waiting
+  for a particular line to appear in a streaming log. The polling interval
+  (default 1 second) and the number of lines examined can be overriden by
+  passing additional arguments.
+waitForRegex <regex> [pollingInterval] [numLinesToExamine]
+  Identical to waitForString except that the first argument is treated as a
+  Python regular expression rather than a literal string.
+shell <args>
+  Execute a shell command using `/bin/sh`. The variables $window and $pane
+  are exported for use by the command. Output is not captured by smux.
+  Each instance of this directive runs in a separate shell.
+sleep <seconds>
+  Sleep for a given number of seconds before executing or sending the next
+  command.
+
+
 Sample Input File:
 
     # This is a comment
@@ -47,25 +103,7 @@ Sample Input File:
     ----------
 
 """
-# Copyright (c) 2014-2020 Henry Qin
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+__all__ = ['create',]
 
 
 import os
@@ -266,36 +304,8 @@ def sendCommand(cmd, pane=0, window=None):
     This function examines the input string. If it begins with `#smux `, then
     it is interpretted as a special function for smux itself to execute in the
     context of the target pane. Otherwise, it is sent to the target pane as if
-    a human had typed it.
-
-    #smux directives
-    ----------------
-    paste-buffer [args]
-      Identical to tmux paste-buffer, except with the pane already specified.
-    send-keys [args]
-      Identical to tmux send-keys, except with the pane already specified.
-      This is useful for sending special keys such as `Enter`, since smux's
-      normal mode of operation is to send all keys literally.
-    sleep <seconds>
-      Sleep for a given number of seconds before executing or sending the next
-      command.
-    waitForString <string> [pollingInterval] [numLinesToExamine]
-      Wait until the given string appears in the last line of the target pane
-      before executing or sending the next command. Note that this directive
-      polls on the output of `tmux capture-pane`, so it only works reliably if
-      the string it is waiting for appears on the screen and stays on the
-      screen persistently until user input is received. That means it is
-      appropriate for waiting for shell or password prompts, but not waiting
-      for a particular line to appear in a streaming log. The polling interval
-      (default 1 second) and the number of lines examined can be overriden by
-      passing additional arguments.
-    waitForRegex  <regex> [pollingInterval] [numLinesToExamine]
-      Identical to waitForString except that the first argument is treated as a
-      Python regular expression rather than a literal string.
-    shell <args>
-      Execute a shell command using `/bin/sh`. The variables $window and $pane
-      are exported for use by the command. Output is not captured by smux.
-      Each instance of this directive runs in a separate shell.
+    a human had typed it. See smux.__doc__ for a description of the various
+    #smux directives.
 
     Parameters
     ----------
@@ -380,6 +390,7 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
       commands than numPanesPerWindow, more windows will be created.
     commands : list(list(str))
       A list of command lists. Each command list will be send to a given pane.
+      The types of commands are documented in smux.__doc__.
     executeBeforeAttach : Callable[[], None]
       A function that a client can pass in to be executed after creating the
       windows. For example, one can synchronize the panes by passing the following:

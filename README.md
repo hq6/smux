@@ -15,9 +15,42 @@ make it easy to do certain `expect`-esque tasks inside tmux, such as waiting
 for prompts, pasting buffers, and executing arbitrary shell commmands
 internally (for example, to wait for user input before proceeding to send more
 commands to various panes). See `#smux directives` in the
-[documentation](https://github.com/hq6/smux/blob/master/smux.txt#L146) for details.
+[documentation](https://github.com/hq6/smux/blob/master/smux.txt#L38) for details.
 
 See the [samples](https://github.com/hq6/smux/tree/master/samples) directory for example smux scripts.
+
+## Why write another tmux launcher?
+
+tmuxp and tmuxinator are powerful tmux session management systems that already
+exist, so why create another one?  The big reasons are the ergonomics and ease
+of learning that arises from a flat input file format and extremely few options.
+
+Consider smux if one of the following is true of your use case:
+
+1. You just have commands you want to execute in different tmux panes. You have
+   neither time nor desire to learn a custom input format and understand a
+   large number of options. You just want to write commands the
+   same way you write a bash script.
+2. You also do not care about "managing" sessions, and just want to automate
+   pane creation.
+3. You want scripts that you can directly copy-and-paste commands out of when
+   you need to run commands manually.
+4. You want to embed a tmux launcher into another Python script that generate
+   commands to run, without having to fit those other scripts into someone
+   else's framework. This can be done with a single call to `smux.create`.
+5. You want to leverage #smux directives for convenient access to tmux
+   buffers and waiting for input.
+
+## Demo (Click to View)
+Writing and running a simple smux script in under 60 seconds.
+
+[![asciicast](https://asciinema.org/a/381955.svg)](https://asciinema.org/a/381955)
+
+Expect-like features with #smux directives, such as waiting for input before
+sending specific keystrokes.
+
+[![asciicast](https://asciinema.org/a/381956.svg)](https://asciinema.org/a/381956)
+
 
 ## Dependencies
 

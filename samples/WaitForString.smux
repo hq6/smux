@@ -1,0 +1,4 @@
+---
+ssh hq6.me
+#smux waitForString hq6@hq6
+htop
