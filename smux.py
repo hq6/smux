@@ -491,7 +491,7 @@ def startSession(file_):
     """
     cmds = []
 
-    args = {"PANES_PER_WINDOW": "4", "LAYOUT": "tiled", "NO_CREATE": False,
+    args = {"PANES_PER_WINDOW": None, "LAYOUT": "tiled", "NO_CREATE": False,
             "USE_THREADS": False}
     cur_cmds = None
     for line in file_:
@@ -525,8 +525,12 @@ def startSession(file_):
 
     if cur_cmds:
         cmds.append(cur_cmds)
-    # Start the sessions
-    create(int(args['PANES_PER_WINDOW']), cmds, args['LAYOUT'], noCreate=args['NO_CREATE'],
+
+    if args['PANES_PER_WINDOW'] is not None:
+        panes_per_window = int(args['PANES_PER_WINDOW'])
+    else:
+        panes_per_window = len(cmds)
+    create(panes_per_window, cmds, args['LAYOUT'], noCreate=args['NO_CREATE'],
            useThreads=args['USE_THREADS'])
 
 
