@@ -483,10 +483,10 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
         if panesNeeded > 0:
             newWindow()
 
-    if not tmux:
-        tcmd("attach-session")
     for thread in threads:
         thread.join()
+    if not tmux:
+        tcmd("attach-session")
 
     # It is important to run this after the threads are joined, because only
     # then can we be guaranteed that all panes are truly finished creating.
