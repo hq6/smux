@@ -391,7 +391,7 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
     commands : list(list(str))
       A list of command lists. Each command list will be send to a given pane.
       The types of commands are documented in smux.__doc__.
-    executeBeforeAttach : Callable[[], None]
+    executeAfterCreate : Callable[[], None]
       A function that a client can pass in to be executed after creating the
       windows. For example, one can synchronize the panes by passing the following:
       lambda : smux.tcmd("setw synchronize-panes on")
@@ -485,14 +485,14 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
 
     for thread in threads:
         thread.join()
-    if not tmux:
-        tcmd("attach-session")
 
     # It is important to run this after the threads are joined, because only
     # then can we be guaranteed that all panes are truly finished creating.
     if executeAfterCreate:
         executeAfterCreate()
 
+    if not tmux:
+        tcmd("attach-session")
 
 def startSession(file_):
     """

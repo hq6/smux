@@ -96,7 +96,7 @@ FUNCTIONS
         commands : list(list(str))
           A list of command lists. Each command list will be send to a given pane.
           The types of commands are documented in smux.__doc__.
-        executeBeforeAttach : Callable[[], None]
+        executeAfterCreate : Callable[[], None]
           A function that a client can pass in to be executed after creating the
           windows. For example, one can synchronize the panes by passing the following:
           lambda : smux.tcmd("setw synchronize-panes on")
