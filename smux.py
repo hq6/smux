@@ -106,6 +106,7 @@ Sample Input File:
 __all__ = ['create',]
 
 
+import argparse
 import os
 import sys
 import time
@@ -567,21 +568,23 @@ def usage():
 
 def main():
     """Entry point for the script."""
-    if len(sys.argv) < 2 or sys.argv[1] in ['--help', '-h', '-?']:
-        usage()
+    # Using argparse mostly for handling `-` for stdin.
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawTextHelpFormatter,
+                                     add_help=False)
+    # Manually defined so we can have backwards compatible `-?`.
+    parser.add_argument('--help', '-h', '-?',  action="store_true", help="Show this text and exit.")
+    parser.add_argument('session_spec_file', nargs='?',
+                         type=argparse.FileType('r'),
+                         help="A file containing options, shell commands and smux directives to run in each pane.")
 
-    f = None
+    options = parser.parse_args(sys.argv[1:])
+    if options.help or options.session_spec_file is None:
+        usage()
     try:
-        f = open(sys.argv[1])
-    except FileNotFoundError:
-        print('File "%s" does not exist.' % sys.argv[1], file=sys.stderr)
-        traceback.print_exc()
-        sys.exit(2)
-    else:
-        startSession(f)
+        startSession(options.session_spec_file)
     finally:
-        if f is not None:
-            f.close()
+        options.session_spec_file.close()
 
 
 if __name__ == "__main__":
