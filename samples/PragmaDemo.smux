@@ -11,7 +11,7 @@ cat
 sleep 5 && echo -n 'Enter password:' && read -s password
 #smux shell bash -c 'while true; \
   do sleep 1; \
-  output=$(tmux capture-pane -t ":${window}.${pane}" -p | tail -1);\
+  output=$(tmux capture-pane -t "${session_name}:${window}.${pane}" -p | tail -1);\
   if [[ $output == *"Enter password:"* ]]; then break; fi; \
   done'
 

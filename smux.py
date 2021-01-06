@@ -118,7 +118,10 @@ import threading
 totalPanes = 0
 MAX_PANES = 500
 
-
+################################################################################
+# Core utility functions. These are define dfirst because global variable
+# assignments depend on them.
+################################################################################
 def tcmd(cmd):
     """Execute the given tmux command synchronously and ignore any output."""
     os.system("tmux %s" % cmd)
@@ -130,6 +133,17 @@ def tget(cmd):
     out, err = proc.communicate()
     exitcode = proc.returncode
     return out
+################################################################################
+
+# Figure out at process start whether we are inside a tmux session.
+tmux = os.environ.get('TMUX')
+
+# The name of either the current session or new session created by smux.py.
+# Note that the existence of this variable implies that a single `smux.create`
+# call can be active at any point in time in a given process.
+sessionName = None
+if tmux:
+    sessionName = tget("display-message -p '#{session_name}'").decode('utf-8').strip()
 
 
 def splitWindow():
@@ -222,7 +236,7 @@ def waitForStringOrRegex(window, pane, args, isRegex):
 
         # Join lines so that we can capture a string spanning multiple lines.
         rawHayStack = tget(
-            f"capture-pane -t :{window}.{pane} -p").decode('utf-8')
+            f"capture-pane -t ={sessionName}:{window}.{pane} -p").decode('utf-8')
         # Need to strip to remove the trailing newline from output of capture-pane.
         haystack = ''.join(rawHayStack.strip().split('\n')
                            [-numLinesToCapture:])
@@ -339,7 +353,7 @@ def sendCommand(cmd, pane=0, window=None):
         # Skip the #smux prefix.
         args = shlex.split(cmd)[1:]
         if args[0] == 'paste-buffer':
-            tcmd(f"paste-buffer -t ':{window}.{pane}' " + shlex.join(args[1:]))
+            tcmd(f"paste-buffer -t '={sessionName}:{window}.{pane}' " + shlex.join(args[1:]))
         elif args[0] == 'send-keys':
             # This option is useful for sending something like "Enter" with
             # semantic meaning, rather than literally. This is needed rather
@@ -347,15 +361,15 @@ def sendCommand(cmd, pane=0, window=None):
             # because the target pane may be running a completely different
             # process which we want to feed special input to (e.g. it is waiting
             # for the user to type a special key such as Enter).
-            tcmd(f"send-keys -t ':{window}.{pane}' " + shlex.join(args[1:]))
+            tcmd(f"send-keys -t '={sessionName}:{window}.{pane}' " + shlex.join(args[1:]))
         elif args[0] == 'sleep':
             time.sleep(float(args[1]))
         elif args[0] == 'shell':
             # Use the suffix of the original string, because
             # shlex.join(shlex.split(X))  turns double-quotes into
             # single-quotes, which is undesirable for expading variables.
-            fullCommand = f'export window={window}; export pane={pane}; ' + \
-                cmd[cmd.index("shell") + len("shell"):]
+            fullCommand = f'export session_name={sessionName}; export window={window}; ' + \
+                f'export pane={pane}; ' + cmd[cmd.index("shell") + len("shell"):]
             os.system(fullCommand)
         elif args[0] == 'waitForString':
             # This command and waitForRegex relies on capture-pane polling (not
@@ -367,14 +381,14 @@ def sendCommand(cmd, pane=0, window=None):
             waitForStringOrRegex(window, pane, args[1:], True)
         return
 
-    tcmd(f"send-keys -t {window}.{pane} -l " + prepareCommand(cmd))
-    tcmd(f"send-keys -t {window}.{pane} Enter")
+    tcmd(f"send-keys -t ={sessionName}:{window}.{pane} -l " + prepareCommand(cmd))
+    tcmd(f"send-keys -t ={sessionName}:{window}.{pane} Enter")
 
 
 # Capture these variables on import if we are inside a tmux, so that their
 # values do not change if the user moves around after invoking a slow command
 # with noCreate.
-if os.environ.get('TMUX'):
+if tmux:
     callerWindow = getCurrentWindow()
     callerPane = getCurrentPane()
 
@@ -423,6 +437,7 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
         for command in commandList:
             sendCommand(command, pane, window)
 
+    global sessionName
     # Remove comments in commands and join together line-continuations for #smux
     # commands.
     for i in range(len(commands)):
@@ -434,11 +449,11 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
     if numPanesPerWindow > 30:
         print("Number per window must be less than 30!")
         return
-    tmux = os.environ.get('TMUX')
     if noCreate and (not tmux or len(commands) != 1):
         print("noCreate parameter ignored because we are not in a tmux session or len(commands) != 1")
     if not tmux:
-        tcmd("new-session -d")
+        rows, columns = os.popen('stty size', 'r').read().split()
+        sessionName = tget(f"new-session -d -x {columns} -y {rows} -P -F '#{{session_name}}'").decode('utf-8').strip()
     elif noCreate and len(commands) == 1:
         # Run ourselves in a subshell, so that Python does not consume the input
         # intended for the new foreground processes started by the script.
