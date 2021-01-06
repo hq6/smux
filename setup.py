@@ -8,7 +8,7 @@ short_description = "Simple tmux launcher that will take less than 2 minutes to 
 
 setup(
   name="smux.py",
-  version='0.1.18',
+  version='0.1.19',
   author="Henry Qin",
   author_email="root@hq6.me",
   description=short_description,
