@@ -342,8 +342,8 @@ def sendCommand(cmd, pane=0, window=None):
         other parts in single quotes.
         """
         if not "'" in cmd:
-            return f"'{cmd}'"
-        return '"\'"'.join(f"'{x}'" for x in cmd.split("'"))
+            return "'' " + f"'{cmd}'"
+        return "'' " + '"\'"'.join(f"'{x}'" for x in cmd.split("'"))
 
     time.sleep(0.1)
     if not window:
