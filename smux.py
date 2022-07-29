@@ -335,15 +335,10 @@ def sendCommand(cmd, pane=0, window=None):
     """
     def prepareCommand(cmd):
         """
-        "Escape" a string for use with send-keys.
-
-        Deal with single quotes inside command by spliting the command by single
-        quotes, wrapping the single quotes in double quotes, and wrapping the
-        other parts in single quotes.
+        "Escape" a string for use with send-keys by converting it into a series
+        of hex digits.
         """
-        if not "'" in cmd:
-            return f"'{cmd}'"
-        return '"\'"'.join(f"'{x}'" for x in cmd.split("'"))
+        return ' '.join(str(hex(ord(c))) for c in cmd)
 
     time.sleep(0.1)
     if not window:
@@ -382,7 +377,7 @@ def sendCommand(cmd, pane=0, window=None):
             waitForStringOrRegex(window, pane, args[1:], True)
         return
 
-    tcmd(f"send-keys -t ={sessionName}:{window}.{pane} -l " + prepareCommand(cmd))
+    tcmd(f"send-keys -t ={sessionName}:{window}.{pane} -H " + prepareCommand(cmd))
     tcmd(f"send-keys -t ={sessionName}:{window}.{pane} Enter")
 
 
