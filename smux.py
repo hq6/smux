@@ -34,6 +34,10 @@ LAYOUT,
     One of the five standard tmux layouts, given below.
     even-horizontal, even-vertical, main-horizontal, main-vertical, tiled.
 
+    In addition, this can be set to a previously used layout returned by tmux
+    list-windows. See the select-layout section of the tmux man page for
+    details.
+
 NO_CREATE,
     When given (no parameter value), smux will attempt to send the commands
     to the caller's window. Option is ignored if more than one command
