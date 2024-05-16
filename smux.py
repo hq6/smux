@@ -451,8 +451,8 @@ def create(numPanesPerWindow, commands, layout='tiled', executeAfterCreate=None,
     if not numPanesPerWindow > 0:
         print("No panes specified.")
         return
-    if numPanesPerWindow > 30:
-        print("Number per window must be less than 30!")
+    if numPanesPerWindow > 50:
+        print("Number per window must be less than 50!")
         return
     if noCreate and (not tmux or len(commands) != 1):
         print("noCreate parameter ignored because we are not in a tmux session or len(commands) != 1")
@@ -523,10 +523,14 @@ def startSession(file_):
     cmds = []
 
     args = {"PANES_PER_WINDOW": None, "LAYOUT": "tiled", "NO_CREATE": False,
-            "USE_THREADS": False}
+            "USE_THREADS": False, "PRESERVE_LEADING_WHITESPACE" : False}
     cur_cmds = None
     for line in file_:
-        line = line.strip()
+        line = line.rstrip() if args['PRESERVE_LEADING_WHITESPACE'] else line.strip()
+        # Always strip leading whitespace on comments and smux directives
+        # Preservation only applies to non-smux directives.
+        if line.lstrip().startswith("#"):
+            line = line.lstrip()
         # comments
         if line == '' or (line.startswith("#") and not line.startswith("#smux ")):
             continue
@@ -543,6 +547,8 @@ def startSession(file_):
                     args["NO_CREATE"] = True
                 elif line == 'USE_THREADS':
                     args['USE_THREADS'] = True
+                elif line == 'PRESERVE_LEADING_WHITESPACE':
+                    args['PRESERVE_LEADING_WHITESPACE'] = True
                 else:
                     left, right = line.split('=', 1)
                     args[left.strip()] = right.strip()
@@ -552,7 +558,7 @@ def startSession(file_):
                 continue
 
         else:  # Actual session is being added to
-            cur_cmds.append(line.strip())
+            cur_cmds.append(line)
 
     if cur_cmds:
         cmds.append(cur_cmds)
